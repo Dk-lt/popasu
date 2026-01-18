@@ -1,0 +1,25 @@
+# .NET
+**/bin/
+**/obj/
+
+# User-specific files
+.vs/
+.idea/
+*.user
+*.suo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.env
+
+# Logs
+*.log
+
+# Node / frontend
+node_modules/
+
+# NuGet
+.nuget/

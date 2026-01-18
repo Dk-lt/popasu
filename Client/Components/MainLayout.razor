@@ -1,0 +1,43 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <button class="sidebar-toggle-btn-fixed modern-toggle-btn" @onclick="ToggleSidebar" title="@(isSidebarCollapsed ? "Развернуть меню" : "Свернуть меню")">
+        @if (isSidebarCollapsed)
+        {
+            <span class="toggle-icon">☰</span>
+        }
+        else
+        {
+            <span class="toggle-icon">✕</span>
+        }
+    </button>
+
+    <div class="sidebar modern-sidebar @(isSidebarCollapsed ? "collapsed" : "")">
+        <NavMenu />
+    </div>
+
+    <main class="modern-main @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
+        <div class="top-row modern-top-row">
+            <div class="top-row-content">
+                <h1 class="top-row-title">
+                    <span class="top-row-icon">🏢</span>
+                    Система учета имущества
+                </h1>
+            </div>
+        </div>
+
+        <article class="content modern-content">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private bool isSidebarCollapsed = false;
+
+    private void ToggleSidebar()
+    {
+        isSidebarCollapsed = !isSidebarCollapsed;
+    }
+}
+

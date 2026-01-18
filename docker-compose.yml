@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: popasu-db
+    environment:
+      POSTGRES_DB: popasu
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - popasu_pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .                 
+      dockerfile: popasu.Api/Dockerfile
+    container_name: popasu-api
+    depends_on:
+      - db
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=popasu;Username=postgres;Password=postgres
+    ports:
+      - "5000:5000"
+
+  client:
+    build:
+      context: .
+      dockerfile: Client/Dockerfile
+    container_name: popasu-client
+    depends_on:
+      - api
+    ports:
+      - "5001:80"
+
+volumes:
+  popasu_pgdata:

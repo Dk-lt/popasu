@@ -1,0 +1,88 @@
+@page "/"
+@inject UsersApi UsersApi
+@inject ClassroomsApi ClassroomsApi
+@inject MaterialItemsApi MaterialItemsApi
+
+<PageTitle>Главная</PageTitle>
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <span class="title-icon">📊</span>
+                Панель управления
+            </h1>
+            <p class="page-subtitle">Обзор системы учета имущества</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid modern-grid">
+        <div class="dashboard-card modern-dashboard-card">
+            <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                👥
+            </div>
+            <div class="dashboard-card-content">
+                <h3 class="dashboard-card-title">Пользователи</h3>
+                <p class="dashboard-card-count">@userCount</p>
+                <p class="dashboard-card-label">Всего пользователей</p>
+                <a href="users" class="btn btn-dashboard">
+                    Управление <span>→</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="dashboard-card modern-dashboard-card">
+            <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                🏛️
+            </div>
+            <div class="dashboard-card-content">
+                <h3 class="dashboard-card-title">Аудитории</h3>
+                <p class="dashboard-card-count">@classroomCount</p>
+                <p class="dashboard-card-label">Всего аудиторий</p>
+                <a href="classrooms" class="btn btn-dashboard">
+                    Управление <span>→</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="dashboard-card modern-dashboard-card">
+            <div class="dashboard-card-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                📦
+            </div>
+            <div class="dashboard-card-content">
+                <h3 class="dashboard-card-title">Материальные объекты</h3>
+                <p class="dashboard-card-count">@materialItemCount</p>
+                <p class="dashboard-card-label">Всего объектов</p>
+                <a href="materialitems" class="btn btn-dashboard">
+                    Управление <span>→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int userCount = 0;
+    private int classroomCount = 0;
+    private int materialItemCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var users = await UsersApi.GetAllAsync();
+            userCount = users.Count;
+
+            var classrooms = await ClassroomsApi.GetAllAsync();
+            classroomCount = classrooms.Count;
+
+            var items = await MaterialItemsApi.GetAllAsync();
+            materialItemCount = items.Count;
+        }
+        catch
+        {
+            // Ignore errors on dashboard
+        }
+    }
+}
+

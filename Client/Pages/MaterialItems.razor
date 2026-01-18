@@ -1,0 +1,510 @@
+@page "/materialitems"
+@inject MaterialItemsApi MaterialItemsApi
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Материальные объекты</PageTitle>
+
+<div class="classrooms-container">
+    <div class="classrooms-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <span class="title-icon">📦</span>
+                Материальные объекты
+            </h1>
+            <p class="page-subtitle">Управление материальными объектами и имуществом</p>
+        </div>
+        <button class="btn btn-create" @onclick="ShowCreateForm">
+            <span class="btn-icon">+</span>
+            Создать объект
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger modern-alert" role="alert">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">
+                <strong>Ошибка:</strong> @errorMessage
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success modern-alert" role="alert">
+            <span class="alert-icon">✓</span>
+            <div class="alert-content">
+                <strong>Успешно:</strong> @successMessage
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Загрузка данных...</p>
+        </div>
+    }
+
+    @if (showCreateForm)
+    {
+        <div class="form-card modern-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">
+                    <span class="form-icon">➕</span>
+                    Создать новый материальный объект
+                </h3>
+            </div>
+            <div class="form-card-body">
+                <EditForm Model="@createRequest" OnValidSubmit="HandleCreate">
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <div class="form-group modern-form-group form-group-full">
+                            <label class="form-label modern-label">
+                                Тип объекта
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputSelect @bind-Value="createRequest.Kind" class="form-control modern-input" @onchange="OnKindChanged">
+                                <option value="">Выберите тип</option>
+                                <option value="equipment">Оборудование</option>
+                                <option value="furniture">Мебель</option>
+                                <option value="software">ПО</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => createRequest.Kind)" />
+                        </div>
+                        <div class="form-group modern-form-group form-group-full">
+                            <label class="form-label modern-label">
+                                Наименование
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText @bind-Value="createRequest.Name" class="form-control modern-input" placeholder="Введите наименование объекта" />
+                            <ValidationMessage For="@(() => createRequest.Name)" />
+                        </div>
+                        <div class="form-group modern-form-group form-group-full">
+                            <label class="form-label modern-label">Описание</label>
+                            <InputTextArea @bind-Value="createRequest.Description" class="form-control modern-input" placeholder="Введите описание объекта" rows="3" />
+                            <ValidationMessage For="@(() => createRequest.Description)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Количество
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputNumber @bind-Value="createRequest.Quantity" class="form-control modern-input" placeholder="0" />
+                            <ValidationMessage For="@(() => createRequest.Quantity)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Дата поступления
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputDate @bind-Value="receivedDate" class="form-control modern-input" />
+                            <ValidationMessage For="@(() => createRequest.ReceivedDate)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Состояние
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputSelect @bind-Value="createRequest.State" class="form-control modern-input">
+                                <option value="0">В эксплуатации</option>
+                                <option value="1">Списано</option>
+                                <option value="2">На ремонте</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => createRequest.State)" />
+                        </div>
+                    </div>
+
+                    @if (createRequest.Kind == "equipment")
+                    {
+                        <div class="form-section modern-form-section">
+                            <h6 class="form-section-title">🔧 Данные об оборудовании</h6>
+                            <div class="form-grid">
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Серийный номер
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputText @bind-Value="createRequest.SerialNumber" class="form-control modern-input" placeholder="Введите серийный номер" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Местоположение
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputText @bind-Value="createRequest.Location" class="form-control modern-input" placeholder="Введите местоположение" />
+                                </div>
+                                <div class="form-group modern-form-group form-group-full">
+                                    <label class="form-label modern-label">Технические характеристики</label>
+                                    <InputTextArea @bind-Value="createRequest.TechnicalCharacteristics" class="form-control modern-input" placeholder="Введите технические характеристики" rows="2" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">Номер аудитории (необязательно)</label>
+                                    <InputText @bind-Value="createRequest.ClassroomNumber" class="form-control modern-input" placeholder="Введите номер аудитории" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (createRequest.Kind == "furniture")
+                    {
+                        <div class="form-section modern-form-section">
+                            <h6 class="form-section-title">🪑 Данные о мебели</h6>
+                            <div class="form-grid">
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Тип мебели
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputText @bind-Value="createRequest.Type" class="form-control modern-input" placeholder="Введите тип мебели" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">Материал</label>
+                                    <InputText @bind-Value="createRequest.Material" class="form-control modern-input" placeholder="Введите материал" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Местоположение
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputText @bind-Value="createRequest.Location" class="form-control modern-input" placeholder="Введите местоположение" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">Номер аудитории (необязательно)</label>
+                                    <InputText @bind-Value="createRequest.ClassroomNumber" class="form-control modern-input" placeholder="Введите номер аудитории" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (createRequest.Kind == "software")
+                    {
+                        <div class="form-section modern-form-section">
+                            <h6 class="form-section-title">💻 Данные о программном обеспечении</h6>
+                            <div class="form-grid">
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Версия
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputText @bind-Value="createRequest.Version" class="form-control modern-input" placeholder="Введите версию" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Лицензия
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputText @bind-Value="createRequest.License" class="form-control modern-input" placeholder="Введите тип лицензии" />
+                                </div>
+                                <div class="form-group modern-form-group">
+                                    <label class="form-label modern-label">
+                                        Дата окончания лицензии
+                                        <span class="required-mark">*</span>
+                                    </label>
+                                    <InputDate @bind-Value="licenseExpirationDate" class="form-control modern-input" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="form-actions modern-form-actions">
+                        <button type="submit" class="btn btn-primary btn-submit">
+                            <span>✓</span> Создать
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-cancel" @onclick="CancelForm">
+                            Отмена
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    <div class="data-card modern-card">
+        <div class="data-card-header">
+            <div class="data-card-title-section">
+                <h3 class="data-card-title">
+                    <span class="data-icon">📋</span>
+                    Список материальных объектов
+                </h3>
+                <span class="data-count">Всего: @filteredItems.Count</span>
+            </div>
+            <div class="filter-container-modern">
+                <label class="filter-label-modern">Фильтр:</label>
+                <select class="form-control modern-input filter-select-modern" value="@selectedKind" @onchange="OnFilterChanged">
+                    <option value="">Все типы</option>
+                    <option value="equipment">Оборудование</option>
+                    <option value="furniture">Мебель</option>
+                    <option value="software">ПО</option>
+                </select>
+            </div>
+        </div>
+        <div class="data-card-body">
+            @if (filteredItems.Count == 0 && !isLoading)
+            {
+                <div class="empty-state modern-empty">
+                    <div class="empty-icon">📭</div>
+                    <p class="empty-text">Материальные объекты не найдены</p>
+                    <p class="empty-hint">Создайте новый объект, чтобы начать работу</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Тип</th>
+                                <th>Наименование</th>
+                                <th class="text-center">Кол-во</th>
+                                <th>Состояние</th>
+                                <th>Аудитория</th>
+                                <th>Дата поступления</th>
+                                <th class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in filteredItems)
+                            {
+                                <tr class="table-row">
+                                    <td>
+                                        <span class="badge badge-item-type">@GetItemKindName(item)</span>
+                                    </td>
+                                    <td class="table-cell-primary">
+                                        <strong>@item.Name</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-count">@item.Quantity</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-state">@GetStateName(item.State)</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #6c757d;">@GetClassroomNumber(item)</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #6c757d;">@item.ReceivedDate.ToString("dd.MM.yyyy")</span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="btn btn-icon btn-delete" @onclick="() => DeleteItem(item.Id)" title="Удалить">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MaterialItemDto> items = new();
+    private List<MaterialItemDto> filteredItems = new();
+    private bool showCreateForm = false;
+    private CreateMaterialItemRequest createRequest = new();
+    private DateTime? receivedDate = DateTime.UtcNow;
+    private DateTime? licenseExpirationDate = null;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+    private string selectedKind = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        isLoading = true;
+        try
+        {
+            items = await MaterialItemsApi.GetAllAsync();
+            ApplyFilter();
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить объекты: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (!string.IsNullOrEmpty(selectedKind))
+        {
+            filteredItems = items.Where(i => GetItemKind(i).ToLowerInvariant() == selectedKind.ToLowerInvariant()).ToList();
+        }
+        else
+        {
+            filteredItems = items;
+        }
+    }
+
+    private void FilterChanged()
+    {
+        ApplyFilter();
+    }
+
+    private void OnFilterChanged(ChangeEventArgs e)
+    {
+        selectedKind = e.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+
+    private void OnKindChanged(ChangeEventArgs e)
+    {
+        createRequest.Kind = e.Value?.ToString() ?? "";
+        KindChanged();
+    }
+
+    private string GetItemKind(MaterialItemDto item)
+    {
+        if (!string.IsNullOrEmpty(item.ItemType))
+        {
+            return item.ItemType.ToLowerInvariant();
+        }
+        return item switch
+        {
+            EquipmentDto => "equipment",
+            FurnitureDto => "furniture",
+            SoftwareDto => "software",
+            _ => ""
+        };
+    }
+
+    private string GetItemKindName(MaterialItemDto item)
+    {
+        if (!string.IsNullOrEmpty(item.ItemType))
+        {
+            return item.ItemType.ToLowerInvariant() switch
+            {
+                "equipment" => "Оборудование",
+                "furniture" => "Мебель",
+                "software" => "ПО",
+                _ => "Неизвестно"
+            };
+        }
+        return item switch
+        {
+            EquipmentDto => "Оборудование",
+            FurnitureDto => "Мебель",
+            SoftwareDto => "ПО",
+            _ => "Неизвестно"
+        };
+    }
+
+    private string GetStateName(State state)
+    {
+        return state switch
+        {
+            State.Operational => "В эксплуатации",
+            State.WrittenOff => "Списано",
+            State.UnderRepair => "На ремонте",
+            _ => state.ToString()
+        };
+    }
+
+    private string GetClassroomNumber(MaterialItemDto item)
+    {
+        return item switch
+        {
+            EquipmentDto eq => eq.ClassroomNumber ?? "-",
+            FurnitureDto fu => fu.ClassroomNumber ?? "-",
+            _ => "-"
+        };
+    }
+
+    private void ShowCreateForm()
+    {
+        showCreateForm = true;
+        createRequest = new CreateMaterialItemRequest
+        {
+            ReceivedDate = DateTime.UtcNow,
+            State = 0
+        };
+        receivedDate = DateTime.UtcNow;
+        licenseExpirationDate = null;
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void KindChanged()
+    {
+        // Clear kind-specific fields when kind changes
+        createRequest.SerialNumber = null;
+        createRequest.Location = null;
+        createRequest.TechnicalCharacteristics = null;
+        createRequest.Type = null;
+        createRequest.Material = null;
+        createRequest.Version = null;
+        createRequest.License = null;
+        createRequest.LicenseExpirationDate = null;
+        licenseExpirationDate = null;
+    }
+
+    private async Task HandleCreate()
+    {
+        try
+        {
+            if (receivedDate.HasValue)
+            {
+                createRequest.ReceivedDate = receivedDate.Value;
+            }
+            if (licenseExpirationDate.HasValue && createRequest.Kind == "software")
+            {
+                createRequest.LicenseExpirationDate = licenseExpirationDate.Value;
+            }
+            await MaterialItemsApi.CreateAsync(createRequest);
+            successMessage = "Объект успешно создан!";
+            errorMessage = null;
+            showCreateForm = false;
+            createRequest = new CreateMaterialItemRequest();
+            receivedDate = DateTime.UtcNow;
+            licenseExpirationDate = null;
+            await LoadItems();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось создать объект: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private async Task DeleteItem(Guid id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить этот объект?"))
+            return;
+
+        try
+        {
+            await MaterialItemsApi.DeleteAsync(id);
+            successMessage = "Объект успешно удален!";
+            errorMessage = null;
+            await LoadItems();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось удалить объект: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private void CancelForm()
+    {
+        showCreateForm = false;
+        createRequest = new CreateMaterialItemRequest();
+        receivedDate = DateTime.UtcNow;
+        licenseExpirationDate = null;
+        errorMessage = null;
+        successMessage = null;
+    }
+}

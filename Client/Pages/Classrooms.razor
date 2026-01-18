@@ -1,0 +1,363 @@
+@page "/classrooms"
+@inject ClassroomsApi ClassroomsApi
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Аудитории</PageTitle>
+
+<div class="classrooms-container">
+    <div class="classrooms-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <span class="title-icon">🏛️</span>
+                Аудитории
+            </h1>
+            <p class="page-subtitle">Управление аудиториями и их характеристиками</p>
+        </div>
+        <button class="btn btn-create" @onclick="ShowCreateForm">
+            <span class="btn-icon">+</span>
+            Создать аудиторию
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger modern-alert" role="alert">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">
+                <strong>Ошибка:</strong> @errorMessage
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success modern-alert" role="alert">
+            <span class="alert-icon">✓</span>
+            <div class="alert-content">
+                <strong>Успешно:</strong> @successMessage
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Загрузка данных...</p>
+        </div>
+    }
+
+    @if (showCreateForm)
+    {
+        <div class="form-card modern-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">
+                    <span class="form-icon">➕</span>
+                    Создать новую аудиторию
+                </h3>
+            </div>
+            <div class="form-card-body">
+                <EditForm Model="@createRequest" OnValidSubmit="HandleCreate">
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Номер аудитории
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText @bind-Value="createRequest.Number" class="form-control modern-input" placeholder="Например: 101" />
+                            <ValidationMessage For="@(() => createRequest.Number)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Вместимость
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputNumber @bind-Value="createRequest.Capacity" class="form-control modern-input" placeholder="Количество мест" />
+                            <ValidationMessage For="@(() => createRequest.Capacity)" />
+                        </div>
+                        <div class="form-group modern-form-group form-group-full">
+                            <label class="form-label modern-label">
+                                Тип аудитории
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText @bind-Value="createRequest.ClassroomType" class="form-control modern-input" placeholder="Например: Лекционная, Лаборатория" />
+                            <ValidationMessage For="@(() => createRequest.ClassroomType)" />
+                        </div>
+                    </div>
+                    <div class="form-actions modern-form-actions">
+                        <button type="submit" class="btn btn-primary btn-submit">
+                            <span>✓</span> Создать
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-cancel" @onclick="CancelForm">
+                            Отмена
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (editingClassroom != null)
+    {
+        <div class="form-card modern-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">
+                    <span class="form-icon">✏️</span>
+                    Редактировать аудиторию #@editingClassroom.Number
+                </h3>
+            </div>
+            <div class="form-card-body">
+                <EditForm Model="@editRequest" OnValidSubmit="HandleUpdate">
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">Номер аудитории</label>
+                            <InputText @bind-Value="editRequest.Number" class="form-control modern-input" disabled="true" />
+                            <ValidationMessage For="@(() => editRequest.Number)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Вместимость
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputNumber @bind-Value="editRequest.Capacity" class="form-control modern-input" placeholder="Количество мест" />
+                            <ValidationMessage For="@(() => editRequest.Capacity)" />
+                        </div>
+                        <div class="form-group modern-form-group form-group-full">
+                            <label class="form-label modern-label">
+                                Тип аудитории
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText @bind-Value="editRequest.ClassroomType" class="form-control modern-input" placeholder="Например: Лекционная, Лаборатория" />
+                            <ValidationMessage For="@(() => editRequest.ClassroomType)" />
+                        </div>
+                    </div>
+                    <div class="form-actions modern-form-actions">
+                        <button type="submit" class="btn btn-primary btn-submit">
+                            <span>💾</span> Сохранить изменения
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-cancel" @onclick="CancelForm">
+                            Отмена
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    <div class="data-card modern-card">
+        <div class="data-card-header">
+            <div class="data-card-title-section">
+                <h3 class="data-card-title">
+                    <span class="data-icon">📋</span>
+                    Список аудиторий
+                </h3>
+                <span class="data-count">Всего: @filteredClassrooms.Count</span>
+            </div>
+            <div class="search-container modern-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input modern-search-input" @bind="searchText" @bind:after="FilterClassrooms" placeholder="Поиск по номеру или типу..." />
+            </div>
+        </div>
+        <div class="data-card-body">
+            @if (filteredClassrooms.Count == 0 && !isLoading)
+            {
+                <div class="empty-state modern-empty">
+                    <div class="empty-icon">📭</div>
+                    <p class="empty-text">Аудитории не найдены</p>
+                    <p class="empty-hint">Создайте новую аудиторию, чтобы начать работу</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Номер</th>
+                                <th>Вместимость</th>
+                                <th>Тип</th>
+                                <th class="text-center">Оборудование</th>
+                                <th class="text-center">Мебель</th>
+                                <th class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var classroom in filteredClassrooms)
+                            {
+                                <tr class="table-row">
+                                    <td class="table-cell-primary">
+                                        <strong>@classroom.Number</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-capacity">@classroom.Capacity мест</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-type">@classroom.ClassroomType</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-count">@classroom.Equipment.Count</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-count">@classroom.Furniture.Count</span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="btn btn-icon btn-edit" @onclick="() => EditClassroom(classroom)" title="Редактировать">
+                                            ✏️
+                                        </button>
+                                        <button class="btn btn-icon btn-delete" @onclick="() => DeleteClassroom(classroom.Number)" title="Удалить">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ClassroomDto> classrooms = new();
+    private List<ClassroomDto> filteredClassrooms = new();
+    private bool showCreateForm = false;
+    private ClassroomDto? editingClassroom = null;
+    private CreateClassroomRequest createRequest = new();
+    private UpdateClassroomRequest editRequest = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClassrooms();
+    }
+
+    private async Task LoadClassrooms()
+    {
+        isLoading = true;
+        try
+        {
+            classrooms = await ClassroomsApi.GetAllAsync();
+            FilterClassrooms();
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить аудитории: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterClassrooms()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredClassrooms = classrooms;
+        }
+        else
+        {
+            var searchLower = searchText.ToLowerInvariant();
+            filteredClassrooms = classrooms.Where(c => 
+                c.Number.ToLowerInvariant().Contains(searchLower) ||
+                c.ClassroomType.ToLowerInvariant().Contains(searchLower)
+            ).ToList();
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        showCreateForm = true;
+        editingClassroom = null;
+        createRequest = new CreateClassroomRequest();
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private async Task HandleCreate()
+    {
+        try
+        {
+            await ClassroomsApi.CreateAsync(createRequest);
+            successMessage = "Аудитория успешно создана!";
+            errorMessage = null;
+            showCreateForm = false;
+            createRequest = new CreateClassroomRequest();
+            await LoadClassrooms();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось создать аудиторию: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private void EditClassroom(ClassroomDto classroom)
+    {
+        editingClassroom = classroom;
+        showCreateForm = false;
+        editRequest = new UpdateClassroomRequest
+        {
+            Number = classroom.Number,
+            Capacity = classroom.Capacity,
+            ClassroomType = classroom.ClassroomType
+        };
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private async Task HandleUpdate()
+    {
+        if (editingClassroom == null) return;
+
+        try
+        {
+            await ClassroomsApi.UpdateAsync(editingClassroom.Number, editRequest);
+            successMessage = "Аудитория успешно обновлена!";
+            errorMessage = null;
+            editingClassroom = null;
+            await LoadClassrooms();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось обновить аудиторию: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private async Task DeleteClassroom(string number)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить эту аудиторию?"))
+            return;
+
+        try
+        {
+            await ClassroomsApi.DeleteAsync(number);
+            successMessage = "Аудитория успешно удалена!";
+            errorMessage = null;
+            await LoadClassrooms();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось удалить аудиторию: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private void CancelForm()
+    {
+        showCreateForm = false;
+        editingClassroom = null;
+        createRequest = new CreateClassroomRequest();
+        editRequest = new UpdateClassroomRequest();
+        errorMessage = null;
+        successMessage = null;
+    }
+}

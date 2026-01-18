@@ -1,0 +1,287 @@
+@page "/users"
+@inject UsersApi UsersApi
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Пользователи</PageTitle>
+
+<div class="classrooms-container">
+    <div class="classrooms-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <span class="title-icon">👥</span>
+                Пользователи
+            </h1>
+            <p class="page-subtitle">Управление пользователями системы</p>
+        </div>
+        <button class="btn btn-create" @onclick="ShowCreateForm">
+            <span class="btn-icon">+</span>
+            Создать пользователя
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger modern-alert" role="alert">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">
+                <strong>Ошибка:</strong> @errorMessage
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success modern-alert" role="alert">
+            <span class="alert-icon">✓</span>
+            <div class="alert-content">
+                <strong>Успешно:</strong> @successMessage
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Загрузка данных...</p>
+        </div>
+    }
+
+    @if (showCreateForm)
+    {
+        <div class="form-card modern-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">
+                    <span class="form-icon">➕</span>
+                    Создать нового пользователя
+                </h3>
+            </div>
+            <div class="form-card-body">
+                <EditForm Model="@createRequest" OnValidSubmit="HandleCreate">
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Имя пользователя
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText @bind-Value="createRequest.Name" class="form-control modern-input" placeholder="Введите полное имя" />
+                            <ValidationMessage For="@(() => createRequest.Name)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Роль
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputSelect @bind-Value="createRequest.Role" class="form-control modern-input">
+                                <option value="@Role.Admin">Администратор</option>
+                                <option value="@Role.Employee">Сотрудник</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => createRequest.Role)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Логин
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText @bind-Value="createRequest.Login" class="form-control modern-input" placeholder="Введите логин" />
+                            <ValidationMessage For="@(() => createRequest.Login)" />
+                        </div>
+                        <div class="form-group modern-form-group">
+                            <label class="form-label modern-label">
+                                Пароль
+                                <span class="required-mark">*</span>
+                            </label>
+                            <InputText type="password" @bind-Value="createRequest.Password" class="form-control modern-input" placeholder="Введите пароль" />
+                            <ValidationMessage For="@(() => createRequest.Password)" />
+                        </div>
+                    </div>
+                    <div class="form-actions modern-form-actions">
+                        <button type="submit" class="btn btn-primary btn-submit">
+                            <span>✓</span> Создать
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-cancel" @onclick="CancelForm">
+                            Отмена
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    <div class="data-card modern-card">
+        <div class="data-card-header">
+            <div class="data-card-title-section">
+                <h3 class="data-card-title">
+                    <span class="data-icon">📋</span>
+                    Список пользователей
+                </h3>
+                <span class="data-count">Всего: @filteredUsers.Count</span>
+            </div>
+            <div class="search-container modern-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input modern-search-input" @bind="searchText" @bind:after="FilterUsers" placeholder="Поиск по имени или логину..." />
+            </div>
+        </div>
+        <div class="data-card-body">
+            @if (filteredUsers.Count == 0 && !isLoading)
+            {
+                <div class="empty-state modern-empty">
+                    <div class="empty-icon">📭</div>
+                    <p class="empty-text">Пользователи не найдены</p>
+                    <p class="empty-hint">Создайте нового пользователя, чтобы начать работу</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Имя</th>
+                                <th>Роль</th>
+                                <th>Логин</th>
+                                <th class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in filteredUsers)
+                            {
+                                <tr class="table-row">
+                                    <td class="table-cell-primary">
+                                        <strong>@user.Name</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-role">@GetRoleName(user.Role)</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #6c757d;">@user.Login</span>
+                                    </td>
+                                    <td class="table-actions">
+                                        <button class="btn btn-icon btn-delete" @onclick="() => DeleteUser(user.Id)" title="Удалить">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserDto> users = new();
+    private List<UserDto> filteredUsers = new();
+    private bool showCreateForm = false;
+    private CreateUserRequest createRequest = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoading = true;
+        try
+        {
+            users = await UsersApi.GetAllAsync();
+            FilterUsers();
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить пользователей: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterUsers()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredUsers = users;
+        }
+        else
+        {
+            var searchLower = searchText.ToLowerInvariant();
+            filteredUsers = users.Where(u => 
+                u.Name.ToLowerInvariant().Contains(searchLower) ||
+                u.Login.ToLowerInvariant().Contains(searchLower)
+            ).ToList();
+        }
+    }
+
+    private string GetRoleName(Role role)
+    {
+        return role switch
+        {
+            Role.Admin => "Администратор",
+            Role.Employee => "Сотрудник",
+            _ => role.ToString()
+        };
+    }
+
+    private void ShowCreateForm()
+    {
+        showCreateForm = true;
+        createRequest = new CreateUserRequest();
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private async Task HandleCreate()
+    {
+        try
+        {
+            await UsersApi.CreateAsync(createRequest);
+            successMessage = "Пользователь успешно создан!";
+            errorMessage = null;
+            showCreateForm = false;
+            createRequest = new CreateUserRequest();
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось создать пользователя: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private async Task DeleteUser(Guid id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить этого пользователя?"))
+            return;
+
+        try
+        {
+            await UsersApi.DeleteAsync(id);
+            successMessage = "Пользователь успешно удален!";
+            errorMessage = null;
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось удалить пользователя: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private void CancelForm()
+    {
+        showCreateForm = false;
+        createRequest = new CreateUserRequest();
+        errorMessage = null;
+        successMessage = null;
+    }
+}
